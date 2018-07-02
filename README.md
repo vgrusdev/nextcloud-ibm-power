@@ -12,7 +12,8 @@ nextcloud-fpm, nginx, redis, cron
 3. nextcloud-3
 added external db Postgers
 
-4. used https proxy - nginx-proxy.
+4. nextcloud-4
+used https proxy - nginx-proxy.
 was not able to build standard conteiner nginx-proxy for Power Linux.
 Faced a roblem to build docker-conf (go-based script) for authomatic nginx-proxy conf file creation.
 Used self-made script instead...
