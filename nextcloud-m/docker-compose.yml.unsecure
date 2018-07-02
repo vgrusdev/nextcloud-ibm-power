@@ -1,0 +1,132 @@
+version: '3'
+
+volumes:
+  db:
+  nextcloud:
+  data:
+# next volumes for security connections HTTPS
+#  certs:
+#  conf.d:
+#  vhost.d:
+#  html:
+
+# next networks for security connections
+# networks:
+#  proxy-tier:
+
+networks:
+  default:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 10.21.0.0/16
+
+services:
+  db:
+    # image: mariadb
+    # image: mysql
+    image: postgres
+    restart: always
+    volumes:
+#      - db:/var/lib/mysql
+      - db:/var/lib/postgresql/data
+#    environment:
+#      - MYSQL_ROOT_PASSWORD=rootpassw0rd
+    env_file:
+#      - db.env
+      - postgres.env
+
+  redis:
+    image: redis
+    restart: always
+
+  app:  
+    build: ./app
+    restart: always
+    volumes:
+      - nextcloud:/var/www/html
+      - data:/var/www/html/data
+#    environment:
+#      - MYSQL_HOST=db
+    env_file:
+#      - db.env
+      - postgres.env
+    depends_on:
+      - db
+      - redis
+
+  web:
+    build: ./web
+    restart: always
+    volumes:
+      - nextcloud:/var/www/html:ro
+    depends_on:
+      - app
+# ports for unsecure connections only
+    ports:
+      - 8085:80
+# next lines for web are for secure connections only
+#    environment:
+#      - VIRTUAL_HOST=
+#      - LETSENCRYPT_HOST=
+#      - LETSENCRYPT_EMAIL=
+#    networks:
+#      - proxy-tier
+#      - default
+
+  cron:
+    build: ./app
+    restart: always
+    volumes:
+      - nextcloud:/var/www/html
+      - data:/var/www/html/data
+    user: www-data
+    entrypoint: |
+      bash -c 'bash -s <<EOF
+        trap "break;exit" SIGHUP SIGINT SIGTERM
+        while [ ! -f /var/www/html/config/config.php ]; do
+          sleep 1
+        done
+        while true; do
+          php -f /var/www/html/cron.php
+          sleep 15m
+        done
+      EOF'
+    depends_on:
+      - db
+      - redis
+
+# next is for  secure connections only
+#  proxy:
+#    build: ./proxy
+#    restart: always
+#    ports:
+#      - 80:80
+#      - 443:443
+#    labels:
+#      com.github.jrcs.letsencrypt_nginx_proxy_companion.nginx_proxy: "true"
+#    volumes:
+#      - certs:/etc/nginx/certs:ro
+#      - conf.d:/etc/nginx/conf.d
+#      - vhost.d:/etc/nginx/vhost.d
+#      - html:/usr/share/nginx/html
+#      - /var/run/docker.sock:/tmp/docker.sock:ro
+#    networks:
+#      - proxy-tier
+#
+#  letsencrypt-companion:
+#    image: jrcs/letsencrypt-nginx-proxy-companion
+#    restart: always
+#    volumes:
+#      - certs:/etc/nginx/certs
+#      - conf.d:/etc/nginx/conf.d
+#      - vhost.d:/etc/nginx/vhost.d
+#      - html:/usr/share/nginx/html
+#      - /var/run/docker.sock:/var/run/docker.sock:ro
+#    networks:
+#      - proxy-tier
+#    depends_on:
+#      - proxy
+#
+

@@ -1,0 +1,64 @@
+version: '3'
+
+services:
+
+  redis:
+    image: redis
+    restart: always
+
+  app:  
+    build: ./app
+    restart: always
+    volumes:
+      - nextcloud:/var/www/html
+      - data:/var/www/html/data
+    depends_on:
+      - redis
+
+  web:
+    image: nginx
+    restart: always
+    volumes:
+      - nextcloud:/var/www/html:ro
+      - ./web/nginx.conf:/etc/nginx/nginx.conf
+    depends_on:
+      - app
+    ports:
+      - 8085:80
+    networks:
+      - default
+
+  cron:
+    build: ./app
+    restart: always
+    volumes:
+      - nextcloud:/var/www/html
+      - data:/var/www/html/data
+    user: www-data
+    entrypoint: |
+      bash -c 'bash -s <<EOF
+        trap "break;exit" SIGHUP SIGINT SIGTERM
+        while [ ! -f /var/www/html/config/config.php ]; do
+          sleep 1
+        done
+        while true; do
+          php -f /var/www/html/cron.php
+          sleep 15m
+        done
+      EOF'
+    depends_on:
+      - redis
+
+volumes:
+  nextcloud:
+  data:
+
+networks:
+  default:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 10.21.0.0/16
+
+
