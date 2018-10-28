@@ -5,9 +5,9 @@ FROM nginx
 RUN apt-get update \
  && apt-get install -y -q --no-install-recommends \
     ca-certificates \
-    dnsutils \
+#    dnsutils \
 #    apt-utils \
-#    busybox \
+    busybox \
  && apt-get clean \
  && rm -r /var/lib/apt/lists/* \
  && mkdir -p /etc/nginx/dhparam \

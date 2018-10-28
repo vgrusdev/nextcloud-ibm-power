@@ -3,10 +3,10 @@ set -e
 
 cp default.conf uploadsize.conf /etc/nginx/conf.d/
 
-WEBHOST=`host web`
+WEBHOST=`busybox nslookup web | grep Address | grep web`
 
 if ! [ $? ]; then
-  ADDR=`echo ${WEBHOST} | awk '{print $4}'`
+  ADDR=`echo ${WEBHOST} | awk '{print $3}'`
   sed -i '/servers/web/'"${ADDR}"'/' /etc/nginx/conf.d/default.conf
 fi
 
